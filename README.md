@@ -2,6 +2,8 @@
 
 A Python backtesting lab for comparing investment strategies side by side. Design custom rules, tune parameters in a browser dashboard, and measure performance against built-in baselines over any historical period.
 
+Link to hosted app: https://portfoliostrategylaunchpad.streamlit.app/
+
 ## What it does
 
 - **Backtest** one or many strategies on real market data (Yahoo Finance via `yfinance`)
