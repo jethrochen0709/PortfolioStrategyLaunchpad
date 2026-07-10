@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Project outputs
+backtest_comparison.png
+
+# Downloaded market data (re-fetched on first run)
+portfolio_sim/data/cache/*.csv
+!portfolio_sim/data/cache/.gitkeep
