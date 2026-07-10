@@ -17,13 +17,23 @@ streamlit run app.py
 
 Opens a dashboard in your browser where you can:
 - Pick your `JCCustom` strategy ideas from the sidebar
-- Compare them against popular built-in baselines
+- Compare them against popular built-in baselines (add `BuyAndHold` to the
+  comparison set if you want a benchmark line - there's no separate
+  benchmark-ticker control anymore, it's just another strategy)
 - Tune every strategy's parameters with sliders/inputs, auto-generated from
   its `param_spec` (amount, frequency, thresholds, tickers, etc.)
-- Set the date range, starting cash, and ticker(s)
-- Click **Run Backtest** to see a performance summary table, an interactive
-  value + drawdown chart shaded with historical events (2008 GFC, COVID
-  crash, dot-com bust, etc.), and per-strategy trade logs
+- Give each strategy **starting holdings** - a ticker + % of its portfolio it
+  already owns on day one (e.g. "already 30% VTI"); whatever isn't allocated
+  starts as cash
+- Set the date range and a single shared **initial cash** amount - every
+  selected strategy is backtested from that same starting capital, so
+  comparisons stay apples-to-apples no matter how each strategy chooses to
+  deploy it
+- Click **Run Backtest** to see a performance summary table (including each
+  strategy's end-of-period **uninvested cash**, in dollars and as a % of its
+  value), an interactive value + drawdown chart shaded with historical events
+  (2008 GFC, COVID crash, dot-com bust, etc.) with an optional overlay of
+  each strategy's uninvested cash over time, and per-strategy trade logs
 
 ## Quick start - plain script
 
@@ -32,9 +42,9 @@ python run_backtest.py
 ```
 
 This downloads SPY data since 2000 (cached locally after the first run),
-runs three strategies (Buy & Hold, Dollar-Cost Averaging, Buy the Dip)
-against it, prints performance metrics for each, and saves a comparison
-chart to `backtest_comparison.png`.
+runs two strategies (Buy & Hold, Dollar-Cost Averaging) against it, prints
+performance metrics for each, and saves a comparison chart to
+`backtest_comparison.png`.
 
 Edit the `CONFIG` section at the top of `run_backtest.py` to change the
 ticker, date range, starting cash, or which strategies run.
@@ -53,9 +63,9 @@ network access. Don't use its numbers as real backtest results.
 
 ```bash
 python test_strategy.py --list
-python test_strategy.py BuyTheDip
-python test_strategy.py BuyTheDip --param drop_pct=7 --param buy_amount=1500
-python test_strategy.py BuyTheDip --real --ticker SPY --start 2015-01-01
+python test_strategy.py DCA
+python test_strategy.py DCA --param amount=750 --param frequency_days=10
+python test_strategy.py GoldenCross --real --ticker SPY --start 2015-01-01
 ```
 
 `test_strategy.py` runs one strategy from the auto-discovered registry,
@@ -99,7 +109,7 @@ portfolio_sim/
   strategies/base.py       - Strategy base class (subclass this)
   strategies/registry.py   - auto-discovers strategy classes + shared helpers
   strategies/_strategy_template.py - copy-paste scaffold for new strategies
-  strategies/*.py          - the 8 strategies themselves (see below)
+  strategies/*.py          - the 7 strategies themselves (see below)
   analysis/metrics.py      - CAGR, drawdown, Sharpe, etc.
   analysis/plotting.py     - matplotlib charts (used by run_backtest.py)
   analysis/events.py       - historical market events for chart shading
@@ -115,7 +125,6 @@ create_strategy.py         - generates a new JCCustom strategy file
 |---|---|
 | `BuyAndHold` | Invest everything on day one, never trade again |
 | `DCA` | Dollar-cost averaging - fixed amount on a fixed schedule |
-| `BuyTheDip` | Buy a fixed amount every time price drops X% from its trailing high |
 | `GoldenCross` | Go all-in on a golden cross (50/200-day MA), to cash on a death cross |
 | `TrendFollowing` | Stay invested only while price is above its N-day moving average |
 | `Rebalancing` | Hold a target mix of two assets (e.g. 60/40 stocks/bonds), periodically rebalanced |
@@ -209,3 +218,10 @@ and have your strategy read/trade whichever of `history["SPY"]` /
   cash/shares, so a strategy can never go negative or oversell.
 - Data is cached in `portfolio_sim/data/cache/*.csv` - delete a file (or pass
   `force_refresh=True`) to re-download fresh data for that ticker.
+- `Backtester.run(strategy, starting_holdings={"VTI": 0.3})` seeds a strategy
+  with existing positions (as a fraction of `initial_cash`) before its own
+  logic runs on day one; whatever fraction isn't allocated starts as cash.
+  The Streamlit app exposes this per-strategy as a "Starting holdings" table.
+  Every strategy in a comparison still shares the same `initial_cash`, so
+  total investable capital stays uniform - only the starting allocation
+  differs.

@@ -2,6 +2,12 @@
 Copy this file to `portfolio_sim/strategies/my_strategy.py`, rename the class,
 and set a unique `name` ending in JCCustom. The strategy registry will discover
 it automatically.
+
+Want to diversify your buys across multiple tickers instead of just one? Add
+an "allocation" + "allocation_mode" param_spec entry (see base.py's docstring
+for the exact shape) and call `self.buy_allocation(...)` /
+`self.sell_allocation(...)` instead of `portfolio.buy()` / `portfolio.sell()`
+directly - see dca.py or golden_cross.py for worked examples.
 """
 from portfolio_sim.strategies.base import Strategy
 

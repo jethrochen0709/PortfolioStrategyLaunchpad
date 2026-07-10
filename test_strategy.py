@@ -3,9 +3,9 @@ Fast strategy test harness.
 
 Examples:
     python test_strategy.py --list
-    python test_strategy.py BuyTheDip
+    python test_strategy.py DCA
     python test_strategy.py MeanReversion --param window=30 --param entry_z=-1.5
-    python test_strategy.py BuyTheDip --real --ticker SPY --start 2015-01-01
+    python test_strategy.py GoldenCross --real --ticker SPY --start 2015-01-01
 """
 import argparse
 
@@ -116,7 +116,7 @@ def list_strategies():
 
 def main():
     parser = argparse.ArgumentParser(description="Quickly test one discovered strategy.")
-    parser.add_argument("strategy", nargs="?", help="Strategy name, e.g. BuyTheDip")
+    parser.add_argument("strategy", nargs="?", help="Strategy name, e.g. DCA")
     parser.add_argument("--list", action="store_true", help="List discovered strategies and exit")
     parser.add_argument("--ticker", default="TEST", help="Primary ticker. Use SPY with --real.")
     parser.add_argument("--secondary-ticker", default="BOND", help="Default for ticker_b-style params")

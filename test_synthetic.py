@@ -15,7 +15,7 @@ from portfolio_sim.strategies.registry import STRATEGY_REGISTRY, param_default_k
 np.random.seed(42)
 
 # Build ~6 years of fake daily data with a slow uptrend, noise, and two
-# engineered crashes (~-25% and ~-15%) so we can confirm BuyTheDip actually
+# engineered crashes (~-25% and ~-15%) so we can confirm dip-buying strategies actually
 # fires and doesn't machine-gun buys during a single drawdown.
 n_days = 252 * 6
 dates = pd.bdate_range("2018-01-02", periods=n_days)

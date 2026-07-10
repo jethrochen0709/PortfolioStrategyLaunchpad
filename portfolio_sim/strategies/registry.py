@@ -52,7 +52,9 @@ def param_default_kwargs(strategy_cls, ticker="SPY", ticker_map=None):
 
     Percent params are stored in param_spec as display percentages (5.0 means
     5%) and converted to constructor fractions (0.05), matching the Streamlit
-    widget behavior.
+    widget behavior. "allocation" params are passed through as-is (a dict of
+    ticker -> weight or dollar value, resolved at trade time by
+    Strategy.buy_allocation()).
     """
     ticker_map = ticker_map or {}
     kwargs = {}
@@ -63,6 +65,16 @@ def param_default_kwargs(strategy_cls, ticker="SPY", ticker_map=None):
             value = ticker_map.get(pname, ticker)
         elif ptype == "percent":
             value = value / 100.0
+        elif ptype == "allocation":
+            value = dict(value) if value else {}
+            if len(value) == 1:
+                # The literal param_spec default is usually a single entry
+                # like {"SPY": 100.0}. If this strategy's own "ticker" param
+                # was overridden away from that literal default (e.g. a
+                # different --ticker on the CLI), reseed the allocation to
+                # match it instead of silently pointing at the old ticker.
+                resolved_ticker = kwargs.get("ticker", ticker)
+                value = {resolved_ticker: next(iter(value.values()))}
         kwargs[pname] = value
     return kwargs
 
@@ -71,10 +83,16 @@ def tickers_from_kwargs(strategy_cls, kwargs):
     """Extract ticker values from constructor kwargs using param_spec metadata."""
     tickers = set()
     for pname, spec in strategy_cls.param_spec.items():
-        if spec.get("type") == "ticker":
+        ptype = spec.get("type")
+        if ptype == "ticker":
             value = kwargs.get(pname, spec.get("default"))
             if value:
                 tickers.add(str(value).strip().upper())
+        elif ptype == "allocation":
+            value = kwargs.get(pname, spec.get("default")) or {}
+            for t in value:
+                if t:
+                    tickers.add(str(t).strip().upper())
     return tickers
 
 

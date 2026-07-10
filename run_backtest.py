@@ -15,7 +15,6 @@ from portfolio_sim.analysis.plotting import plot_comparison
 
 from portfolio_sim.strategies.buy_and_hold import BuyAndHold
 from portfolio_sim.strategies.dca import DollarCostAveraging
-from portfolio_sim.strategies.buy_the_dip import BuyTheDip
 
 # ---------------------------- CONFIG ----------------------------
 TICKER = "SPY"
@@ -26,7 +25,6 @@ INITIAL_CASH = 10000
 STRATEGIES = [
     BuyAndHold(ticker=TICKER),
     DollarCostAveraging(ticker=TICKER, amount=500, frequency_days=21),  # ~monthly
-    BuyTheDip(ticker=TICKER, drop_pct=0.05, buy_amount=1000),
 ]
 # ------------------------------------------------------------------
 
