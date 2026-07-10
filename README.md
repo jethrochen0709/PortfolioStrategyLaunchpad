@@ -1,83 +1,93 @@
-# Strategy Launchpad
+# Portfolio Strategy Launchpad
 
-Create custom investing strategies, backtest them over a chosen date range,
-and compare them against popular pre-existing strategies side by side.
+A Python backtesting lab for comparing investment strategies side by side. Design custom rules, tune parameters in a browser dashboard, and measure performance against built-in baselines over any historical period.
 
-## Setup
+## What it does
+
+- **Backtest** one or many strategies on real market data (Yahoo Finance via `yfinance`)
+- **Compare** strategies apples-to-apples with shared starting capital and optional recurring contributions
+- **Visualize** portfolio value, drawdowns, uninvested cash, and major market events (GFC, COVID, dot-com, etc.)
+- **Extend** by dropping a new strategy file into `portfolio_sim/strategies/` — the app discovers it automatically
+
+## Quick start
+
+**Requirements:** Python 3.9+
 
 ```bash
 pip install -r requirements.txt
-```
-
-## Quick start - interactive app (recommended)
-
-```bash
 streamlit run app.py
 ```
 
-Opens a dashboard in your browser where you can:
-- Pick your `JCCustom` strategy ideas from the sidebar
-- Compare them against popular built-in baselines (add `BuyAndHold` to the
-  comparison set if you want a benchmark line - there's no separate
-  benchmark-ticker control anymore, it's just another strategy)
-- Tune every strategy's parameters with sliders/inputs, auto-generated from
-  its `param_spec` (amount, frequency, thresholds, tickers, etc.)
-- Give each strategy **starting holdings** - a ticker + % of its portfolio it
-  already owns on day one (e.g. "already 30% VTI"); whatever isn't allocated
-  starts as cash
-- Set the date range and a single shared **initial cash** amount - every
-  selected strategy is backtested from that same starting capital, so
-  comparisons stay apples-to-apples no matter how each strategy chooses to
-  deploy it
-- Click **Run Backtest** to see a performance summary table (including each
-  strategy's end-of-period **uninvested cash**, in dollars and as a % of its
-  value), an interactive value + drawdown chart shaded with historical events
-  (2008 GFC, COVID crash, dot-com bust, etc.) with an optional overlay of
-  each strategy's uninvested cash over time, and per-strategy trade logs
+The dashboard opens in your browser. Pick strategies in the sidebar, adjust parameters, set a date range and initial cash, then click **Run Backtest**.
 
-## Quick start - plain script
+### Other entry points
 
-```bash
-python run_backtest.py
+| Command | Purpose |
+|---|---|
+| `python run_backtest.py` | Script-based comparison (saves `backtest_comparison.png`) |
+| `python test_strategy.py --list` | List all registered strategies |
+| `python test_strategy.py DCA` | Fast single-strategy test on synthetic data |
+| `python test_synthetic.py` | Sanity check without internet |
+| `python create_strategy.py my_idea` | Scaffold a new custom strategy |
+
+## Dashboard features
+
+- **Strategy picker** — built-in baselines plus your custom `JCCustom` strategies
+- **Auto-generated controls** — sliders, inputs, and dropdowns built from each strategy's `param_spec`
+- **Starting holdings** — seed a strategy with existing positions (ticker + % of portfolio) on day one
+- **Recurring income** — simulate periodic contributions (weekly, monthly, etc.) added equally to every strategy
+- **Metrics table** — CAGR, max drawdown, Sharpe ratio, and end-of-period uninvested cash
+- **Interactive charts** — Plotly value/drawdown chart with optional cash overlay and log scale
+- **Trade logs** — per-strategy buy/sell history
+
+Every strategy in a comparison run shares the same **initial cash** and **recurring income**, so differences in results come from how each strategy deploys capital — not from unequal funding.
+
+## Project structure
+
+```
+PortfolioStrategyLaunchpad/
+├── app.py                          # Streamlit dashboard (main UI)
+├── run_backtest.py                 # Script-based backtest example
+├── test_strategy.py                # Fast CLI harness for one strategy
+├── test_synthetic.py               # Offline engine sanity check
+├── create_strategy.py              # Strategy file generator
+├── requirements.txt
+└── portfolio_sim/
+    ├── data/
+    │   ├── loader.py               # yfinance downloader + local CSV cache
+    │   ├── ticker_guide.py         # Ticker reference for the UI
+    │   └── cache/                  # Cached price data (gitignored)
+    ├── engine/
+    │   ├── portfolio.py            # Cash, positions, trade log
+    │   └── backtest.py             # Day-by-day simulation loop
+    ├── strategies/
+    │   ├── base.py                 # Strategy base class
+    │   ├── registry.py             # Auto-discovery + shared helpers
+    │   ├── _strategy_template.py   # Copy-paste scaffold
+    │   └── *.py                    # Individual strategy implementations
+    └── analysis/
+        ├── metrics.py              # CAGR, drawdown, Sharpe, etc.
+        ├── plotting.py             # Matplotlib charts (used by run_backtest.py)
+        └── events.py               # Historical market events for chart shading
 ```
 
-This downloads SPY data since 2000 (cached locally after the first run),
-runs two strategies (Buy & Hold, Dollar-Cost Averaging) against it, prints
-performance metrics for each, and saves a comparison chart to
-`backtest_comparison.png`.
+## Built-in strategies
 
-Edit the `CONFIG` section at the top of `run_backtest.py` to change the
-ticker, date range, starting cash, or which strategies run.
+| Name | Description |
+|---|---|
+| `BuyAndHold` | Invest everything on day one, hold |
+| `DCA` | Fixed dollar amount on a regular schedule (optionally split across tickers) |
+| `GoldenCross` | All-in on 50/200-day golden cross, to cash on death cross |
+| `TrendFollowing` | Stay invested while price is above its N-day moving average |
+| `Rebalancing` | Maintain a target mix (e.g. 60/40 stocks/bonds), rebalance periodically |
+| `ValueAveraging` | Target a growth path — buy more when behind, less when ahead |
+| `MeanReversion` | Buy on statistical dips (z-score), sell on reversion |
 
-## Sanity-check without internet
+Custom strategies (files ending in `JCCustom` or marked `is_custom = True`) appear in a separate section of the picker.
 
-```bash
-python test_synthetic.py
-```
+## Create a custom strategy
 
-Runs the same engine against a generated (fake) price series with two
-engineered crashes, so you can confirm the mechanics work even without
-network access. Don't use its numbers as real backtest results.
-
-## Fast strategy test loop
-
-```bash
-python test_strategy.py --list
-python test_strategy.py DCA
-python test_strategy.py DCA --param amount=750 --param frequency_days=10
-python test_strategy.py GoldenCross --real --ticker SPY --start 2015-01-01
-```
-
-`test_strategy.py` runs one strategy from the auto-discovered registry,
-defaults to synthetic data for instant feedback, and compares it against
-Buy & Hold unless you pass `--no-benchmark`. For `"percent"` params, pass
-human percentages on the command line (`drop_pct=7` means 7%, passed to the
-strategy as `0.07`).
-
-## Strategy launchpad workflow
-
-Use this when you brainstorm a new strategy and want to get it into the app
-quickly:
+### Option 1 — generator (fastest)
 
 ```bash
 python create_strategy.py my_idea
@@ -86,69 +96,26 @@ python create_strategy.py trend_idea --template moving_average
 python test_strategy.py MyIdeaJCCustom
 ```
 
-`create_strategy.py` writes a new file into `portfolio_sim/strategies/`, marks
-the class as `JCCustom`, and prints the exact smoke-test command to run next.
-After the smoke test passes, refresh Streamlit and the strategy appears in the
-picker next to the built-ins.
-
-Available generator templates:
-
-| Template | Good for |
+| Template | Best for |
 |---|---|
-| `scheduled_buy` | Buy a chosen ticker with a chosen dollar amount every N trading days |
-| `buy_the_dip` | Buy a chosen ticker after it falls X% from a trailing high |
-| `moving_average` | Stay invested above a moving average and move to cash below it |
+| `scheduled_buy` | Buy a ticker for a fixed dollar amount every N trading days |
+| `buy_the_dip` | Buy after a drop of X% from a trailing high |
+| `moving_average` | Stay invested above a moving average, move to cash below |
 
-## How it's structured
+After the smoke test passes, refresh Streamlit — the strategy appears in the picker.
 
-```
-portfolio_sim/
-  data/loader.py           - yfinance downloader + local CSV cache
-  engine/portfolio.py      - Portfolio: cash, positions, trade log
-  engine/backtest.py       - Backtester: steps through history day-by-day
-  strategies/base.py       - Strategy base class (subclass this)
-  strategies/registry.py   - auto-discovers strategy classes + shared helpers
-  strategies/_strategy_template.py - copy-paste scaffold for new strategies
-  strategies/*.py          - the 7 strategies themselves (see below)
-  analysis/metrics.py      - CAGR, drawdown, Sharpe, etc.
-  analysis/plotting.py     - matplotlib charts (used by run_backtest.py)
-  analysis/events.py       - historical market events for chart shading
-app.py                     - interactive Streamlit dashboard
-run_backtest.py            - plain-script example, no UI
-test_strategy.py           - fast one-strategy harness with benchmark compare
-create_strategy.py         - generates a new JCCustom strategy file
-```
+### Option 2 — subclass `Strategy`
 
-## Included strategies
-
-| Strategy | What it does |
-|---|---|
-| `BuyAndHold` | Invest everything on day one, never trade again |
-| `DCA` | Dollar-cost averaging - fixed amount on a fixed schedule |
-| `GoldenCross` | Go all-in on a golden cross (50/200-day MA), to cash on a death cross |
-| `TrendFollowing` | Stay invested only while price is above its N-day moving average |
-| `Rebalancing` | Hold a target mix of two assets (e.g. 60/40 stocks/bonds), periodically rebalanced |
-| `ValueAveraging` | Target a fixed portfolio value growth path; buy more when behind, less when ahead |
-| `MeanReversion` | Buy when price is statistically far below its average (z-score), sell on reversion |
-
-Every strategy declares a `param_spec` dict describing its own tunable
-parameters - the Streamlit app reads this to auto-generate the right widget
-(slider, number input, ticker box, etc.) for each one. **Add a new strategy
-with a `param_spec` and it automatically appears in the app** - no UI code
-to write.
-
-## Writing your own strategy
-
-Subclass `Strategy` and implement `on_data()`. It's called once per trading
-day with all data available up to (and including) that day - never anything
-from the future - plus the live `Portfolio` to trade through.
+Implement `on_data(date, history, portfolio)`. It runs once per trading day with all data up to and including that day (no lookahead) and a live `Portfolio` to trade through.
 
 ```python
 from portfolio_sim.strategies.base import Strategy
 
-class MyStrategy(Strategy):
-    name = "MyStrategy"
-    description = "Sells strength above the 200-day average, buys weakness below it."
+class MyStrategyJCCustom(Strategy):
+    name = "MyStrategyJCCustom"
+    display_name = "My Strategy"
+    is_custom = True
+    description = "Brief description shown in the UI."
     param_spec = {
         "ticker": {"label": "Ticker", "type": "ticker", "default": "SPY"},
         "threshold": {"label": "Distance from MA", "type": "percent", "default": 10.0,
@@ -169,34 +136,46 @@ class MyStrategy(Strategy):
         ma200 = df["Close"].rolling(200).mean().iloc[-1]
 
         if price > ma200 * (1 + self.threshold):
-            portfolio.sell(date, self.ticker, price, dollar_amount=1000)  # take profit
+            portfolio.sell(date, self.ticker, price, dollar_amount=1000)
         elif price < ma200 * (1 - self.threshold):
-            portfolio.buy(date, self.ticker, price, dollar_amount=1000)   # buy weakness
+            portfolio.buy(date, self.ticker, price, dollar_amount=1000)
 ```
 
-Save it as a new `.py` file in `portfolio_sim/strategies/`. The registry
-auto-discovers concrete `Strategy` subclasses, so it will show up in the
-Streamlit app and in `python test_strategy.py --list` with no manual wiring.
-You can also copy `portfolio_sim/strategies/_strategy_template.py` as a
-starting point.
+Save as a new `.py` file in `portfolio_sim/strategies/`. No manual registration needed.
 
-`param_spec` types: `"ticker"` (text box, uppercased), `"text"` (plain text),
-`"number"` (numeric input with min/max/step), `"percent"` (0-100 slider,
-passed to your constructor as a 0-1 fraction), `"select"` (dropdown, needs
-an `"options"` list).
+### `param_spec` types
 
-### Ideas to try next
-- **Momentum**: buy when price crosses above its 50/200-day moving average
-- **Rebalancing**: hold a 60/40 stocks/bonds mix, rebalance back to target monthly
-- **Multi-asset rotation**: hold whichever of several ETFs has the best trailing return
-- **Volatility-scaled sizing**: buy more on dips when volatility is low, less when it's high
-- **Stop-loss / trailing stop** overlays on top of another strategy
+| Type | Widget | Notes |
+|---|---|---|
+| `ticker` | Text input | Uppercased automatically |
+| `text` | Text input | Plain string |
+| `number` | Number input | Supports `min`, `max`, `step` |
+| `percent` | Slider (0–100) | Passed to constructor as 0–1 fraction |
+| `select` | Dropdown | Requires `"options"` list |
+| `allocation` | Multi-ticker table | Split purchases across tickers |
 
-## Multiple tickers / assets
+## CLI testing
 
-`Backtester` and `Strategy.on_data()` already work with any number of
-tickers - `history` is a dict keyed by ticker. Just pass more tickers into
-the `data` dict:
+```bash
+# List strategies
+python test_strategy.py --list
+
+# Quick test on synthetic data (instant, no network)
+python test_strategy.py DCA
+python test_strategy.py DCA --param amount=750 --param frequency_days=10
+
+# Real market data
+python test_strategy.py GoldenCross --real --ticker SPY --start 2015-01-01
+
+# With recurring income
+python test_strategy.py DCA --real --income 500 --income-frequency monthly
+```
+
+For `"percent"` params, pass human-readable values on the CLI (`drop_pct=7` means 7%, stored as `0.07`).
+
+## Multi-ticker strategies
+
+`history` in `on_data()` is a dict keyed by ticker. Pass multiple series to the backtester:
 
 ```python
 data = {
@@ -205,23 +184,15 @@ data = {
 }
 ```
 
-and have your strategy read/trade whichever of `history["SPY"]` /
-`history["TLT"]` it needs - useful for rotation or rebalancing strategies.
+Useful for rotation, rebalancing, and diversified DCA strategies.
 
-## Notes & caveats
+## Limitations
 
-- Prices are `auto_adjust=True` from yfinance (split/dividend adjusted), so
-  returns include reinvested dividends for most ETFs.
-- No transaction costs, slippage, taxes, or bid/ask spread are modeled - real
-  results would be somewhat worse, especially for high-frequency strategies.
-- `Portfolio.buy()` / `.sell()` automatically cap trades at available
-  cash/shares, so a strategy can never go negative or oversell.
-- Data is cached in `portfolio_sim/data/cache/*.csv` - delete a file (or pass
-  `force_refresh=True`) to re-download fresh data for that ticker.
-- `Backtester.run(strategy, starting_holdings={"VTI": 0.3})` seeds a strategy
-  with existing positions (as a fraction of `initial_cash`) before its own
-  logic runs on day one; whatever fraction isn't allocated starts as cash.
-  The Streamlit app exposes this per-strategy as a "Starting holdings" table.
-  Every strategy in a comparison still shares the same `initial_cash`, so
-  total investable capital stays uniform - only the starting allocation
-  differs.
+- Prices use `auto_adjust=True` from yfinance (split/dividend adjusted)
+- No transaction costs, slippage, taxes, or bid/ask spread
+- `Portfolio.buy()` / `.sell()` cap trades at available cash/shares
+- Price data caches locally in `portfolio_sim/data/cache/` — delete a CSV or pass `force_refresh=True` to re-download
+
+## License
+
+Personal project — use and modify freely.
